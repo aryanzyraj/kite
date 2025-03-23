@@ -1,43 +1,47 @@
 #!/bin/bash
 
+# Ensure the script is run with root privileges
+if [ "$EUID" -ne 0 ]; then
+    echo "❌ Please run this script as root or use sudo!"
+    exit 1
+fi
+
 # Check if sudo is installed
-# if ! command -v sudo &> /dev/null; then
-#     echo "❌ sudo is not installed. Installing sudo..."
-#     apt update
-#     apt install -y sudo
-# else
-#     echo "✅ sudo is already installed."
-# fi
+if ! command -v sudo &> /dev/null; then
+    echo "❌ sudo is not installed. Installing sudo..."
+    apt update
+    apt install -y sudo
+else
+    echo "✅ sudo is already installed."
+fi
 
 # Check if screen is installed
-
-# if ! command -v screen &> /dev/null; then
-#     echo "❌ screen is not installed. Installing screen..."
-#     sudo apt update
-#     sudo apt install -y screen
-# else
-#     echo "✅ screen is already installed."
-# fi
+if ! command -v screen &> /dev/null; then
+    echo "❌ screen is not installed. Installing screen..."
+    sudo apt update
+    sudo apt install -y screen
+else
+    echo "✅ screen is already installed."
+fi
 
 # Check if net-tools is installed
-
-# if ! command -v ifconfig &> /dev/null; then
-#     echo "❌ net-tools is not installed. Installing net-tools..."
-#     sudo apt install -y net-tools
-# else
-#     echo "✅ net-tools is already installed."
-# fi
+if ! command -v ifconfig &> /dev/null; then
+    echo "❌ net-tools is not installed. Installing net-tools..."
+    sudo apt install -y net-tools
+else
+    echo "✅ net-tools is already installed."
+fi
 
 # Check if lsof is installed
+if ! command -v lsof &> /dev/null; then
+    echo "❌ lsof is not installed. Installing lsof..."
+    sudo apt update
+    sudo apt install -y lsof
+    sudo apt upgrade -y
+else
+    echo "✅ lsof is already installed."
+fi
 
-# if ! command -v lsof &> /dev/null; then
-#     echo "❌ lsof is not installed. Installing lsof..."
-#     sudo apt update
-#     sudo apt install -y lsof
-#     sudo apt upgrade -y
-# else
-#     echo "✅ lsof is already installed."
-# fi
 BOT_DIR=~/bots
 
 # Ensure bots directory exists
@@ -53,14 +57,6 @@ while true; do
     echo -e "\e[1;85m🔹 Telegram: https://t.me/aryanyzraj\e[0m"
     echo -e "\e[1;85m🔹 X (Twitter): https://x.com/aryanzyraj\e[0m"
 
-    echo "==============================================================="
-    echo -e "\e[1;97m✨ Your GPU, CPU & RAM Specs Matter a Lot for Optimal Performance! ✨\e[0m"
-    echo "==============================================================="
-        # Performance & Requirement Section
-    echo -e "\e[1;96m⏱  Keep Your Node Active Minimum 15 - 20 Hours Each Day! ⏳\e[0m"
-    echo -e "\e[1;91m⚠️  Don’t Run Multiple Nodes if You Only Have 4GB RAM! ❌\e[0m"
-    echo "==============================================================="
-    echo -e "\e[1;32m✅ Earn Kite Points Continuously – Keep Your System Active for Maximum Rewards! 💰💰\e[0m"
     echo "==============================================================="
      # Menu Options
     echo -e "\n\e[1mSelect an action:\e[0m\n"
@@ -198,25 +194,39 @@ while true; do
              read -r -p "Press Enter to return to the main menu..."
             ;;
 
-        5)  # Restart a chatbot
+               5)  # Restart a chatbot
             bots=($(find "$BOT_DIR" -mindepth 1 -maxdepth 1 -type d -printf "%f\n"))
-            echo "📜 Available Chatbots:"
-            select bot in "${bots[@]}" "ALL"; do
-                if [[ "${bot,,}" == "all" ]]; then
-                    for b in "${bots[@]}"; do
-                        screen -S "$b" -X quit
-                        screen -dmS "$b" bash -c "cd '$BOT_DIR/$b' && npm run start"
-                    done
-                    echo "🔄 All chatbots restarted!"
-                elif [ -n "$bot" ]; then
-                    screen -S "$bot" -X quit
-                    screen -dmS "$bot" bash -c "cd '$BOT_DIR/$bot' && npm run start"
-                    echo "🔄 Chatbot '$bot' restarted!"
-                fi
-                break
-            done
-             read -r -p "Press Enter to return to the main menu..."
+            if [ ${#bots[@]} -eq 0 ]; then
+                echo "⚠️ No chatbots found!"
+            else
+                echo "📜 Available Chatbots:"
+                select bot in "${bots[@]}" "ALL"; do
+                    bot_lower=$(echo "$bot" | tr '[:upper:]' '[:lower:]')  # Convert input to lowercase
+
+                    if [[ "$bot_lower" == "all" ]]; then
+                        for b in "${bots[@]}"; do
+                            echo "🔄 Restarting chatbot: $b"
+                            screen -S "$b" -X quit
+                            sleep 1  # Short delay to ensure process stops
+                            screen -dmS "$b" bash -c "cd '$BOT_DIR/$b' && npm run start"
+                            echo "✅ Chatbot '$b' restarted!"
+                        done
+                        echo "🔄 All chatbots restarted successfully!"
+                    elif [ -n "$bot" ]; then
+                        echo "🔄 Restarting chatbot: $bot"
+                        screen -S "$bot" -X quit
+                        sleep 1
+                        screen -dmS "$bot" bash -c "cd '$BOT_DIR/$bot' && npm run start"
+                        echo "✅ Chatbot '$bot' restarted!"
+                    else
+                        echo "❌ Invalid selection!"
+                    fi
+                    break
+                done
+            fi
+            read -r -p "Press Enter to return to the main menu..."
             ;;
+
 
         6)  # Stop a chatbot
             bots=($(find "$BOT_DIR" -mindepth 1 -maxdepth 1 -type d -printf "%f\n"))
